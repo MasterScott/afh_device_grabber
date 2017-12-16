@@ -2,6 +2,7 @@
 import json
 import requests
 import cfscrape
+import time
 
 AFH_API_ENDPOINT = "https://androidfilehost.com/api/"
 
@@ -26,6 +27,7 @@ def fetch_devs(did):
         print "pass {0} of {1}".format(str(i),str(temp_dev_pages_count))
         payload={'action':'developers','page':i,'limit':'100','did':did}
         devs.extend(scraper.get(AFH_API_ENDPOINT,params=payload)).json()['DATA']
+        time.sleep(3)
     return devs
 
 
@@ -36,7 +38,19 @@ def get_devices():
       print "pass {0} of {1}".format(str(i),str(PAGE_COUNT))
       payload={'action':'devices','limit':'100','page':i}
       r = scraper.get(AFH_API_ENDPOINT, params=payload)
-      list_devices.extend(r.json()['DATA'])
+      rJson = []
+      try:
+        rJson = r.json()['DATA']
+      except ValueError:
+        msg = "Error on page "
+        msg += str(i)
+        print msg
+        print r.content
+        time.sleep(5)
+        # Retrying. So far, this has been a HTTP 502, and a retry fixes it
+        # TODO: Check if it really is a 502, and set a MAX_RETRIES
+        continue
+      list_devices.extend(rJson)
       print "Currently synced down {0} devices!".format(str(len(list_devices)))
       i+=1
     json.dump(list_devices,_f,indent=2)
