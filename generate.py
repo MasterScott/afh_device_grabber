@@ -5,17 +5,40 @@ import cfscrape
 import time
 
 AFH_API_ENDPOINT = "https://androidfilehost.com/api/"
+MAX_RETRIES = 5
 
+errors = ""
 _f=open('devices.json','w')
 list_devices=[]
 
 def count_pages():
+    retries = 0
     scraper = cfscrape.create_scraper()
     payload={'action':'devices','limit':'1'}
-    data = scraper.get(AFH_API_ENDPOINT, params=payload).json()
-    temp_page_count = int(data['TOTALS']['total_objects'])
-    global PAGE_COUNT
-    PAGE_COUNT = (temp_page_count/100) + 1
+    while True:
+        data = []
+        r = scraper.get(AFH_API_ENDPOINT, params=payload)
+        try:
+            data = r.json()
+        except ValueError:
+            if retries < MAX_RETRIES:
+                retries += 1
+                print r.content
+                print "Error fetching number of pages. Retrying after 5s."
+                time.sleep(5)
+                continue
+            else:
+                errors += "Error: could not fetch number of pages\n"
+                break
+        temp_page_count = 0
+#        try:
+        temp_page_count = int(data['TOTALSz']['total_objects']
+#        except:
+#            errors += "Error: unexpected JSON in count_pages()\n"
+#            break
+        global PAGE_COUNT = 7
+# (temp_page_count/100) + 1
+        break
 
 def fetch_devs(did):
     scraper = cfscrape.create_scraper()
@@ -62,5 +85,7 @@ def get_developers():
         json.dump(devs,_f,indent=2)
 
 count_pages()
-get_devices()
-get_developers()
+if 'PAGE_COUNT' in globals() && PAGE_COUNT >= 1:
+    get_devices()
+    get_developers()
+print errors
