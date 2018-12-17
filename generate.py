@@ -1,11 +1,14 @@
 #!/usr/bin/env python
 import json
-import cfscrape
+import requests
 import time
 import os
 
 AFH_API_ENDPOINT = "https://androidfilehost.com/api/"
 MAX_RETRIES = 5
+UA = {
+    'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.87 Safari/537.36'
+}
 
 page_count = 0
 errors = ""
@@ -18,11 +21,10 @@ def count_pages():
     global page_count
     global errors
     retries = 0
-    scraper = cfscrape.create_scraper()
     payload={'action':'devices','limit':'1'}
     while True:
         data = []
-        r = scraper.get(AFH_API_ENDPOINT, params=payload)
+        r = requests.get(AFH_API_ENDPOINT, headers=UA,params=payload)
         try:
             data = r.json()
         except ValueError:
@@ -45,12 +47,11 @@ def count_pages():
         break
 
 def fetch_devs(did):
-    scraper = cfscrape.create_scraper()
     devs = []
     retries = 0
     payload={'action':'developers','page':'1','limit':'1','did':did}
     while True:
-        raw = scraper.get(AFH_API_ENDPOINT, params=payload)
+        raw = requests.get(AFH_API_ENDPOINT, headers=UA,params=payload)
         objects = 0
         try:
             objects = int(raw.json()['TOTALS']['total_objects'])
@@ -85,7 +86,7 @@ def fetch_devs(did):
         print "pass {0} of {1}".format(str(i), str(temp_dev_pages_count))
         payload={'action':'developers','page':i,'limit':'100','did':did}
         data = []
-        raw = scraper.get(AFH_API_ENDPOINT,params=payload)
+        raw = requests.get(AFH_API_ENDPOINT,headers=UA,params=payload)
         try:
             data = raw.json()['DATA']
         except ValueError:
@@ -115,14 +116,13 @@ def fetch_devs(did):
 
 
 def get_devices():
-    scraper = cfscrape.create_scraper()
     retries = 0
     global errors
     i = 1
     while i <= page_count:
       print "pass {0} of {1}".format(str(i),str(page_count))
       payload={'action':'devices','limit':'100','page':i}
-      r = scraper.get(AFH_API_ENDPOINT, params=payload)
+      r = requests.get(AFH_API_ENDPOINT, headers=UA,params=payload)
       rJson = []
       try:
           rJson = r.json()['DATA']
